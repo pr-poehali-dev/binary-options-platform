@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import CandlestickChart from '@/components/CandlestickChart';
 
 type Trade = {
   id: string;
@@ -25,6 +26,14 @@ type ChartDataPoint = {
   price: number;
 };
 
+type CandleData = {
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+};
+
 const Index = () => {
   const [isDemoMode, setIsDemoMode] = useState(true);
   const [balance, setBalance] = useState(10000);
@@ -33,9 +42,11 @@ const Index = () => {
   const [tradeAmount, setTradeAmount] = useState(100);
   const [activeSection, setActiveSection] = useState('trading');
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const [candleData, setCandleData] = useState<CandleData[]>([]);
   const [currentPrice, setCurrentPrice] = useState(0);
   const [trades, setTrades] = useState<Trade[]>([]);
   const [activeTrades, setActiveTrades] = useState<Trade[]>([]);
+  const [chartType, setChartType] = useState<'area' | 'candle'>('candle');
 
   const assets = [
     { value: 'BTC/USD', label: 'Bitcoin / USD', emoji: '₿' },
@@ -49,6 +60,7 @@ const Index = () => {
   useEffect(() => {
     const basePrice = selectedAsset === 'BTC/USD' ? 43500 : selectedAsset === 'ETH/USD' ? 2300 : 1.08;
     const initialData: ChartDataPoint[] = [];
+    const initialCandles: CandleData[] = [];
     let price = basePrice;
     
     for (let i = 60; i >= 0; i--) {
@@ -60,7 +72,26 @@ const Index = () => {
       });
     }
     
+    for (let i = 0; i < 30; i++) {
+      const open = price;
+      const volatility = basePrice * 0.003;
+      const close = open + (Math.random() - 0.5) * volatility;
+      const high = Math.max(open, close) + Math.random() * volatility * 0.5;
+      const low = Math.min(open, close) - Math.random() * volatility * 0.5;
+      
+      initialCandles.push({
+        time: `${30 - i}m`,
+        open: parseFloat(open.toFixed(2)),
+        high: parseFloat(high.toFixed(2)),
+        low: parseFloat(low.toFixed(2)),
+        close: parseFloat(close.toFixed(2))
+      });
+      
+      price = close;
+    }
+    
     setChartData(initialData);
+    setCandleData(initialCandles);
     setCurrentPrice(initialData[initialData.length - 1].price);
 
     const interval = setInterval(() => {
@@ -76,6 +107,22 @@ const Index = () => {
         
         setCurrentPrice(newPrice);
         return newData;
+      });
+      
+      setCandleData(prev => {
+        if (prev.length === 0) return prev;
+        const lastCandle = prev[prev.length - 1];
+        const volatility = basePrice * 0.003;
+        const close = lastCandle.close + (Math.random() - 0.5) * volatility * 0.3;
+        
+        const updatedCandle = {
+          ...lastCandle,
+          close: parseFloat(close.toFixed(2)),
+          high: Math.max(lastCandle.high, close),
+          low: Math.min(lastCandle.low, close)
+        };
+        
+        return [...prev.slice(0, -1), updatedCandle];
       });
     }, 1000);
 
@@ -242,17 +289,37 @@ const Index = () => {
             </div>
           </div>
 
-          <div className="flex gap-2">
-            {timeframes.map(tf => (
+          <div className="flex items-center gap-4">
+            <div className="flex gap-2">
               <Button
-                key={tf}
-                variant={selectedTimeframe === tf ? 'default' : 'outline'}
+                variant={chartType === 'candle' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setSelectedTimeframe(tf)}
+                onClick={() => setChartType('candle')}
               >
-                {tf}
+                <Icon name="CandlestickChart" size={16} />
+                Свечи
               </Button>
-            ))}
+              <Button
+                variant={chartType === 'area' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setChartType('area')}
+              >
+                <Icon name="LineChart" size={16} />
+                Линейный
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              {timeframes.map(tf => (
+                <Button
+                  key={tf}
+                  variant={selectedTimeframe === tf ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedTimeframe(tf)}
+                >
+                  {tf}
+                </Button>
+              ))}
+            </div>
           </div>
         </header>
 
@@ -260,33 +327,41 @@ const Index = () => {
           <div className="flex-1 grid grid-cols-3 gap-4 p-6 overflow-auto">
             <div className="col-span-2 space-y-4">
               <Card className="p-6">
-                <ResponsiveContainer width="100%" height={400}>
-                  <AreaChart data={chartData}>
-                    <defs>
-                      <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" />
-                    <YAxis domain={['dataMin - 10', 'dataMax + 10']} stroke="hsl(var(--muted-foreground))" />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px'
-                      }} 
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="price" 
-                      stroke="hsl(var(--primary))" 
-                      strokeWidth={2}
-                      fill="url(#colorPrice)" 
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+                {chartType === 'candle' ? (
+                  <CandlestickChart 
+                    data={candleData} 
+                    width={800} 
+                    height={400}
+                  />
+                ) : (
+                  <ResponsiveContainer width="100%" height={400}>
+                    <AreaChart data={chartData}>
+                      <defs>
+                        <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" />
+                      <YAxis domain={['dataMin - 10', 'dataMax + 10']} stroke="hsl(var(--muted-foreground))" />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--card))', 
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px'
+                        }} 
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="price" 
+                        stroke="hsl(var(--primary))" 
+                        strokeWidth={2}
+                        fill="url(#colorPrice)" 
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
               </Card>
 
               {activeTrades.length > 0 && (
