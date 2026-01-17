@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 
 type Trade = {
   id: string;
@@ -141,6 +141,34 @@ const Index = () => {
   const winRate = trades.length > 0 
     ? ((trades.filter(t => t.result === 'win').length / trades.length) * 100).toFixed(1)
     : '0.0';
+
+  const totalInvested = trades.reduce((sum, t) => sum + t.amount, 0);
+  const totalProfit = trades.reduce((sum, t) => sum + (t.payout ? t.payout - t.amount : -t.amount), 0);
+  const wonTrades = trades.filter(t => t.result === 'win').length;
+  const lostTrades = trades.filter(t => t.result === 'loss').length;
+
+  const assetStats = assets.map(asset => {
+    const assetTrades = trades.filter(t => t.asset === asset.value);
+    const wins = assetTrades.filter(t => t.result === 'win').length;
+    const total = assetTrades.length;
+    return {
+      asset: asset.value,
+      emoji: asset.emoji,
+      total,
+      wins,
+      losses: total - wins,
+      winRate: total > 0 ? ((wins / total) * 100).toFixed(1) : '0',
+      profit: assetTrades.reduce((sum, t) => sum + (t.payout ? t.payout - t.amount : -t.amount), 0)
+    };
+  });
+
+  const balanceHistory = [
+    { time: 'Старт', balance: 10000 },
+    ...trades.map((trade, idx) => ({
+      time: `${idx + 1}`,
+      balance: 10000 + trades.slice(0, idx + 1).reduce((sum, t) => sum + (t.payout ? t.payout - t.amount : -t.amount), 0)
+    }))
+  ].slice(-20);
 
   return (
     <div className="min-h-screen bg-background dark flex">
@@ -447,7 +475,191 @@ const Index = () => {
           </div>
         )}
 
-        {activeSection !== 'trading' && activeSection !== 'history' && (
+        {activeSection === 'portfolio' && (
+          <div className="flex-1 p-6 overflow-auto">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+              <Icon name="Wallet" size={24} />
+              Портфель
+            </h2>
+
+            <div className="grid grid-cols-4 gap-4 mb-6">
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-muted-foreground">Баланс</p>
+                  <Icon name="Wallet" size={20} className="text-primary" />
+                </div>
+                <p className="text-3xl font-bold">${balance.toFixed(2)}</p>
+                <p className={`text-sm mt-1 ${balance >= 10000 ? 'text-success' : 'text-destructive'}`}>
+                  {balance >= 10000 ? '+' : ''}{((balance - 10000) / 10000 * 100).toFixed(2)}%
+                </p>
+              </Card>
+
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-muted-foreground">Общая прибыль</p>
+                  <Icon name="TrendingUp" size={20} className="text-success" />
+                </div>
+                <p className={`text-3xl font-bold ${totalProfit >= 0 ? 'text-success' : 'text-destructive'}`}>
+                  {totalProfit >= 0 ? '+' : ''}${totalProfit.toFixed(2)}
+                </p>
+                <p className="text-sm mt-1 text-muted-foreground">
+                  Всего инвестировано: ${totalInvested.toFixed(2)}
+                </p>
+              </Card>
+
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-muted-foreground">Успешных сделок</p>
+                  <Icon name="CheckCircle2" size={20} className="text-success" />
+                </div>
+                <p className="text-3xl font-bold text-success">{wonTrades}</p>
+                <p className="text-sm mt-1 text-muted-foreground">
+                  Процент побед: {winRate}%
+                </p>
+              </Card>
+
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-muted-foreground">Проигранных сделок</p>
+                  <Icon name="XCircle" size={20} className="text-destructive" />
+                </div>
+                <p className="text-3xl font-bold text-destructive">{lostTrades}</p>
+                <p className="text-sm mt-1 text-muted-foreground">
+                  Всего сделок: {trades.length}
+                </p>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6 mb-6">
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Icon name="LineChart" size={20} />
+                  График баланса
+                </h3>
+                {balanceHistory.length > 1 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={balanceHistory}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" />
+                      <YAxis stroke="hsl(var(--muted-foreground))" />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--card))', 
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px'
+                        }} 
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="balance" 
+                        stroke="hsl(var(--primary))" 
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                    <div className="text-center">
+                      <Icon name="LineChart" size={48} className="mx-auto mb-2 opacity-50" />
+                      <p>Совершите сделки для отображения графика</p>
+                    </div>
+                  </div>
+                )}
+              </Card>
+
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Icon name="PieChart" size={20} />
+                  Соотношение результатов
+                </h3>
+                {trades.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'Победы', value: wonTrades, color: 'hsl(var(--success))' },
+                          { name: 'Проигрыши', value: lostTrades, color: 'hsl(var(--destructive))' }
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        <Cell fill="hsl(var(--success))" />
+                        <Cell fill="hsl(var(--destructive))" />
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                    <div className="text-center">
+                      <Icon name="PieChart" size={48} className="mx-auto mb-2 opacity-50" />
+                      <p>Нет данных для отображения</p>
+                    </div>
+                  </div>
+                )}
+              </Card>
+            </div>
+
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Icon name="BarChart3" size={20} />
+                Статистика по активам
+              </h3>
+              {assetStats.some(a => a.total > 0) ? (
+                <div className="space-y-4">
+                  {assetStats.filter(a => a.total > 0).map(stat => (
+                    <div key={stat.asset} className="border border-border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{stat.emoji}</span>
+                          <div>
+                            <p className="font-semibold text-lg">{stat.asset}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {stat.total} {stat.total === 1 ? 'сделка' : stat.total < 5 ? 'сделки' : 'сделок'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-2xl font-bold ${stat.profit >= 0 ? 'text-success' : 'text-destructive'}`}>
+                            {stat.profit >= 0 ? '+' : ''}${stat.profit.toFixed(2)}
+                          </p>
+                          <p className="text-sm text-muted-foreground">Прибыль</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="text-center">
+                          <p className="text-2xl font-bold text-success">{stat.wins}</p>
+                          <p className="text-xs text-muted-foreground">Побед</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-2xl font-bold text-destructive">{stat.losses}</p>
+                          <p className="text-xs text-muted-foreground">Проигрышей</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-2xl font-bold">{stat.winRate}%</p>
+                          <p className="text-xs text-muted-foreground">Процент побед</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Icon name="BarChart3" size={48} className="mx-auto mb-4 opacity-50" />
+                  <p>Начните торговать для отображения статистики</p>
+                </div>
+              )}
+            </Card>
+          </div>
+        )}
+
+        {activeSection !== 'trading' && activeSection !== 'history' && activeSection !== 'portfolio' && (
           <div className="flex-1 p-6 flex items-center justify-center">
             <div className="text-center">
               <Icon name="Construction" size={64} className="mx-auto mb-4 text-muted-foreground" />
