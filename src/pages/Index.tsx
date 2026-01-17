@@ -324,82 +324,46 @@ const Index = () => {
         </header>
 
         {activeSection === 'trading' && (
-          <div className="flex-1 grid grid-cols-3 gap-4 p-6 overflow-auto">
-            <div className="col-span-2 space-y-4">
-              <Card className="p-6">
-                {chartType === 'candle' ? (
-                  <CandlestickChart 
-                    data={candleData} 
-                    width={800} 
-                    height={400}
-                  />
-                ) : (
-                  <ResponsiveContainer width="100%" height={400}>
-                    <AreaChart data={chartData}>
-                      <defs>
-                        <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" />
-                      <YAxis domain={['dataMin - 10', 'dataMax + 10']} stroke="hsl(var(--muted-foreground))" />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'hsl(var(--card))', 
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px'
-                        }} 
-                      />
-                      <Area 
-                        type="monotone" 
-                        dataKey="price" 
-                        stroke="hsl(var(--primary))" 
-                        strokeWidth={2}
-                        fill="url(#colorPrice)" 
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                )}
-              </Card>
-
-              {activeTrades.length > 0 && (
-                <Card className="p-6">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <Icon name="Activity" size={20} />
-                    Активные сделки
-                  </h3>
-                  <div className="space-y-3">
-                    {activeTrades.map(trade => {
-                      const elapsed = Date.now() - trade.timestamp.getTime();
-                      const remaining = Math.max(0, 60 - Math.floor(elapsed / 1000));
-                      
-                      return (
-                        <div key={trade.id} className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                          <div className="flex items-center gap-4">
-                            <Badge variant={trade.direction === 'up' ? 'default' : 'destructive'}>
-                              <Icon name={trade.direction === 'up' ? 'ArrowUp' : 'ArrowDown'} size={14} />
-                              {trade.direction === 'up' ? 'ВВЕРХ' : 'ВНИЗ'}
-                            </Badge>
-                            <div>
-                              <p className="font-semibold">{trade.asset}</p>
-                              <p className="text-sm text-muted-foreground">${trade.amount}</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm text-muted-foreground">Осталось</p>
-                            <p className="text-lg font-bold">{remaining}s</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </Card>
+          <div className="flex-1 flex flex-col p-6 overflow-auto gap-4">
+            <Card className="p-6">
+              {chartType === 'candle' ? (
+                <CandlestickChart 
+                  data={candleData} 
+                  width={1000} 
+                  height={500}
+                />
+              ) : (
+                <ResponsiveContainer width="100%" height={500}>
+                  <AreaChart data={chartData}>
+                    <defs>
+                      <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" />
+                    <YAxis domain={['dataMin - 10', 'dataMax + 10']} stroke="hsl(var(--muted-foreground))" />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }} 
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="price" 
+                      stroke="hsl(var(--primary))" 
+                      strokeWidth={2}
+                      fill="url(#colorPrice)" 
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
               )}
-            </div>
+            </Card>
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <Card className="p-6">
                 <h3 className="text-lg font-semibold mb-4">Торговая панель</h3>
                 
@@ -447,19 +411,19 @@ const Index = () => {
 
                   <div className="grid grid-cols-2 gap-3">
                     <Button 
-                      className="bg-success hover:bg-success/90 text-success-foreground h-14 text-lg font-semibold"
+                      className="bg-success hover:bg-success/90 text-success-foreground h-16 text-xl font-semibold"
                       onClick={() => handleTrade('up')}
                       disabled={tradeAmount > balance}
                     >
-                      <Icon name="ArrowUp" size={20} />
+                      <Icon name="ArrowUp" size={24} />
                       ВВЕРХ
                     </Button>
                     <Button 
-                      className="bg-destructive hover:bg-destructive/90 h-14 text-lg font-semibold"
+                      className="bg-destructive hover:bg-destructive/90 h-16 text-xl font-semibold"
                       onClick={() => handleTrade('down')}
                       disabled={tradeAmount > balance}
                     >
-                      <Icon name="ArrowDown" size={20} />
+                      <Icon name="ArrowDown" size={24} />
                       ВНИЗ
                     </Button>
                   </div>
@@ -497,6 +461,40 @@ const Index = () => {
                 </div>
               </Card>
             </div>
+
+            {activeTrades.length > 0 && (
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Icon name="Activity" size={20} />
+                  Активные сделки
+                </h3>
+                <div className="grid grid-cols-3 gap-3">
+                  {activeTrades.map(trade => {
+                    const elapsed = Date.now() - trade.timestamp.getTime();
+                    const remaining = Math.max(0, 60 - Math.floor(elapsed / 1000));
+                    
+                    return (
+                      <div key={trade.id} className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                        <div className="flex items-center gap-4">
+                          <Badge variant={trade.direction === 'up' ? 'default' : 'destructive'}>
+                            <Icon name={trade.direction === 'up' ? 'ArrowUp' : 'ArrowDown'} size={14} />
+                            {trade.direction === 'up' ? 'ВВЕРХ' : 'ВНИЗ'}
+                          </Badge>
+                          <div>
+                            <p className="font-semibold">{trade.asset}</p>
+                            <p className="text-sm text-muted-foreground">${trade.amount}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-muted-foreground">Осталось</p>
+                          <p className="text-lg font-bold">{remaining}s</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
           </div>
         )}
 
