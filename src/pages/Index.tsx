@@ -445,9 +445,9 @@ const Index = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-3">
                     <Button 
-                      className="w-full bg-success hover:bg-success/90 text-success-foreground h-14 text-lg font-semibold"
+                      className="bg-success hover:bg-success/90 text-success-foreground h-14 text-lg font-semibold"
                       onClick={() => handleTrade('up')}
                       disabled={tradeAmount > balance}
                     >
@@ -455,7 +455,7 @@ const Index = () => {
                       ВВЕРХ
                     </Button>
                     <Button 
-                      className="w-full bg-destructive hover:bg-destructive/90 h-14 text-lg font-semibold"
+                      className="bg-destructive hover:bg-destructive/90 h-14 text-lg font-semibold"
                       onClick={() => handleTrade('down')}
                       disabled={tradeAmount > balance}
                     >
